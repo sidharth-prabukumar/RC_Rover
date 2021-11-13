@@ -1,8 +1,13 @@
+// Library Includes
 #include <stdio.h>
+// IDF Includes
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "driver/ledc.h"
-#include "esp_err.h"
+#include "esp_log.h"
+// Local Includes
+#include "motor/motor.h"
+
+using namespace motor_ctrl;
 
 extern "C"
 {
@@ -11,45 +16,52 @@ extern "C"
 
 void app_main(void)
 {
-    ledc_timer_config_t timer = {
-        .speed_mode = LEDC_LOW_SPEED_MODE,                 /*!< LEDC speed speed_mode, high-speed mode or low-speed mode */
-        .duty_resolution = LEDC_TIMER_10_BIT,       /*!< LEDC channel duty resolution */ 
-        .timer_num = LEDC_TIMER_0,                /*!< The timer source of channel (0 - 3) */
-        .freq_hz = 5000,                       /*!< LEDC timer frequency (Hz) */
-        .clk_cfg = LEDC_AUTO_CLK                 /*!< Configure LEDC source clock.
-                                                        For low speed channels and high speed channels, you can specify the source clock using LEDC_USE_REF_TICK, LEDC_USE_APB_CLK or LEDC_AUTO_CLK.
-                                                        For low speed channels, you can also specify the source clock using LEDC_USE_RTC8M_CLK, in this case, all low speed channel's source clock must be RTC8M_CLK*/
+    pwm_gpio_t Motor_Left_PWM = {
+        .mcpwm_A = 15,
+        .mcpwm_B = 13
     };
-    ledc_timer_config(&timer);
+    pwm_duty_t Motor_Left_DutyCycle = {
+        .mcpwm_A_duty = 40.0,
+        .mcpwm_B_duty = 40.0
+    };
+    /*pwm_gpio_t Motor_Right_PWM = {
+        .mcpwm_A = 4,
+        .mcpwm_B = 5
+    };
+    pwm_duty_t Motor_Right_DutyCycle = {
+        .mcpwm_A_duty = 50.0,
+        .mcpwm_B_duty = 50.0
+    };*/
+    motor Motor_Left(Motor_Left_PWM, MOTOR_DIR_BWD, Motor_Left_DutyCycle);
+    //motor Motor_Right(Motor_Right_PWM, MOTOR_DIR_FWD, Motor_Left_DutyCycle);
+    Motor_Left.Init();
+    Motor_Left.Start();
 
-    ledc_channel_config_t channel = {
-        .gpio_num = 4,
-        .speed_mode = LEDC_LOW_SPEED_MODE,
-        .channel = LEDC_CHANNEL_0,
-        .intr_type = LEDC_INTR_DISABLE,
-        .timer_sel = LEDC_TIMER_0,
-        .duty = 0,
-        .hpoint = 0
-    };
-    ledc_channel_config(&channel);
-    ledc_fade_func_install(0);
-    int i;
-    //ledc_set_duty_and_update(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0, 1024, 0);
-    for(i=0; i < 1024; i++)
+    // Spin backward for some time
+    for(int i=0;i < 100; i++)
     {
-        ledc_set_duty_and_update(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0, i, 0);
-        //ledc_set_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0, i);
-        //ledc_update_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0);
-        vTaskDelay(1 / portTICK_PERIOD_MS);
-        printf("Speed = %d\n", i);
+        Motor_Left_DutyCycle.mcpwm_B_duty = i;
+        Motor_Left.SetDuty(Motor_Left_DutyCycle);
+        Motor_Left.Start();
+        vTaskDelay(10 / portTICK_PERIOD_MS);
     }
-    for(i=1023; i >=0; i--)
+
+    // Stop spinning for some time
+    Motor_Left.Stop();
+    vTaskDelay(1000 / portTICK_PERIOD_MS);
+
+    // Stop forward for some time
+    Motor_Left.SetDirection(MOTOR_DIR_FWD);
+    for(int i=0;i < 100; i++)
     {
-        ledc_set_duty_and_update(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0, i, 0);
-        //ledc_set_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0, i);
-        //ledc_update_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0);
-        vTaskDelay(1 / portTICK_PERIOD_MS);
-        printf("Speed = %d\n", i);
+        Motor_Left_DutyCycle.mcpwm_A_duty = i;
+        Motor_Left.SetDuty(Motor_Left_DutyCycle);
+        Motor_Left.Start();
+        vTaskDelay(10 / portTICK_PERIOD_MS);
     }
+
+    // Stop spinning
+    Motor_Left.Stop();
+    vTaskDelay(1000 / portTICK_PERIOD_MS);
     
 }

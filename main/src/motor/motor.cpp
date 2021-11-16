@@ -5,9 +5,9 @@
 // Local Includes
 #include "motor/motor.h"
 
-static const char * TAG = "MOTOR";
 namespace motor_ctrl
 {
+    static const char * TAG = "MOTOR";
     motor::motor(pwm_gpio_t pin, motor_dir_t dir, pwm_duty_t duty)
     {
         direction                   = dir;
@@ -22,26 +22,42 @@ namespace motor_ctrl
         // Nothing to destroy
     }
 
-    log::ROVER_EC motor::Init()
+    log::ROVER_EC motor::Init(mcpwm_unit_t unit, pwm_channel_t channel, mcpwm_timer_t timer)
     {
+        m_MCPWM_Unit = unit;
+        switch(channel)
+        {
+            case PWM_CHANNEL_0:
+                m_MCPWM_A = MCPWM0A;
+                m_MCPWM_B = MCPWM0B;
+                break;
+            case PWM_CHANNEL_1:
+                m_MCPWM_A = MCPWM1A;
+                m_MCPWM_B = MCPWM1B;
+                break;
+            case PWM_CHANNEL_2:
+                m_MCPWM_A = MCPWM2A;
+                m_MCPWM_B = MCPWM2B;
+                break;
+        }
+        m_MCPWM_Timer = timer;
         // Initial GPIO configuration
-        if(log::ROVER_OK != log::return_err_if_esp_err(TAG, mcpwm_gpio_init(MCPWM_UNIT_0, MCPWM0A, pwm_pin.mcpwm_A)))
+        if(log::ROVER_OK != log::return_err_if_esp_err(TAG, mcpwm_gpio_init(m_MCPWM_Unit, m_MCPWM_A, pwm_pin.mcpwm_A)))
         {
             return log::ROVER_ERR;
         }
-        if(log::ROVER_OK != log::return_err_if_esp_err(TAG, mcpwm_gpio_init(MCPWM_UNIT_0, MCPWM0B, pwm_pin.mcpwm_B)))
+        if(log::ROVER_OK != log::return_err_if_esp_err(TAG, mcpwm_gpio_init(m_MCPWM_Unit, m_MCPWM_B, pwm_pin.mcpwm_B)))
         {
             return log::ROVER_ERR;
         }
         // Initial mcpwm configuration
         ESP_LOGI(TAG,"Configuring Initial Parameters of mcpwm...");
-        mcpwm_config_t pwm_config;
-        pwm_config.frequency = 1000;    //frequency = 1kHz,
-        pwm_config.cmpr_a = duty_cycle.mcpwm_A_duty;          //duty cycle of PWMxA = 0
-        pwm_config.cmpr_b = duty_cycle.mcpwm_B_duty;          //duty cycle of PWMxb = 0
-        pwm_config.counter_mode = MCPWM_UP_COUNTER;
-        pwm_config.duty_mode = MCPWM_DUTY_MODE_0;
-        if(log::ROVER_OK != log::return_err_if_esp_err(TAG, mcpwm_init(MCPWM_UNIT_0, MCPWM_TIMER_0, &pwm_config)))
+        m_MCPWM_Config.frequency = 1000;    //frequency = 1kHz,
+        m_MCPWM_Config.cmpr_a = duty_cycle.mcpwm_A_duty;          //duty cycle of PWMxA = 0
+        m_MCPWM_Config.cmpr_b = duty_cycle.mcpwm_B_duty;          //duty cycle of PWMxb = 0
+        m_MCPWM_Config.counter_mode = MCPWM_UP_COUNTER;
+        m_MCPWM_Config.duty_mode = MCPWM_DUTY_MODE_0;
+        if(log::ROVER_OK != log::return_err_if_esp_err(TAG, mcpwm_init(m_MCPWM_Unit, m_MCPWM_Timer, &m_MCPWM_Config)))
         {
             return log::ROVER_ERR;
         }
@@ -52,23 +68,23 @@ namespace motor_ctrl
     {
         if(direction == MOTOR_DIR_FWD)
         {
-            mcpwm_set_signal_low(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_GEN_B);
-            mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_GEN_A, duty_cycle.mcpwm_A_duty);
-            mcpwm_set_duty_type(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_GEN_A, MCPWM_DUTY_MODE_0);
+            mcpwm_set_signal_low(m_MCPWM_Unit, m_MCPWM_Timer, MCPWM_GEN_B);
+            mcpwm_set_duty(m_MCPWM_Unit, m_MCPWM_Timer, MCPWM_GEN_A, duty_cycle.mcpwm_A_duty);
+            mcpwm_set_duty_type(m_MCPWM_Unit, m_MCPWM_Timer, MCPWM_GEN_A, m_MCPWM_Config.duty_mode);
         }
         else if(direction == MOTOR_DIR_BWD)
         {
-            mcpwm_set_signal_low(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_GEN_A);
-            mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_GEN_B, duty_cycle.mcpwm_B_duty);
-            mcpwm_set_duty_type(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_GEN_B, MCPWM_DUTY_MODE_0);
+            mcpwm_set_signal_low(m_MCPWM_Unit, m_MCPWM_Timer, MCPWM_GEN_A);
+            mcpwm_set_duty(m_MCPWM_Unit, m_MCPWM_Timer, MCPWM_GEN_B, duty_cycle.mcpwm_B_duty);
+            mcpwm_set_duty_type(m_MCPWM_Unit, m_MCPWM_Timer, MCPWM_GEN_B, m_MCPWM_Config.duty_mode);
         }
         return log::ROVER_OK;
     }
 
     log::ROVER_EC motor::Stop()
     {
-        mcpwm_set_signal_low(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_GEN_A);
-        mcpwm_set_signal_low(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_GEN_B);
+        mcpwm_set_signal_low(m_MCPWM_Unit, m_MCPWM_Timer, MCPWM_GEN_A);
+        mcpwm_set_signal_low(m_MCPWM_Unit, m_MCPWM_Timer, MCPWM_GEN_B);
         ESP_LOGI(TAG, "Motor Stopped");
         return log::ROVER_OK;
     }

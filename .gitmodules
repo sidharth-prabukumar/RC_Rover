@@ -1,0 +1,3 @@
+[submodule "vendor/esp32-ps3"]
+	path = vendor/esp32-ps3
+	url = https://github.com/jvpernis/esp32-ps3

@@ -9,6 +9,19 @@
     "idf.pythonBinPathWin": "c:\\esp\\tools\\python_env\\idf4.3_py3.8_env\\Scripts\\python.exe",
     "idf.toolsPathWin": "c:\\esp\\tools",
     "files.associations": {
-        "ledc.h": "c"
+        "ledc.h": "c",
+        "array": "cpp",
+        "chrono": "cpp",
+        "deque": "cpp",
+        "format": "cpp",
+        "forward_list": "cpp",
+        "initializer_list": "cpp",
+        "list": "cpp",
+        "vector": "cpp",
+        "xhash": "cpp",
+        "xstring": "cpp",
+        "xtree": "cpp",
+        "xutility": "cpp",
+        "xiosbase": "cpp"
     }
 }

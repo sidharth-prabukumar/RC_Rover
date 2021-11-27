@@ -66,17 +66,21 @@ namespace motor_ctrl
 
     log::ROVER_EC motor::Start()
     {
-        if(direction == MOTOR_DIR_FWD)
+        switch(direction)
         {
-            mcpwm_set_signal_low(m_MCPWM_Unit, m_MCPWM_Timer, MCPWM_GEN_B);
-            mcpwm_set_duty(m_MCPWM_Unit, m_MCPWM_Timer, MCPWM_GEN_A, duty_cycle.mcpwm_A_duty);
-            mcpwm_set_duty_type(m_MCPWM_Unit, m_MCPWM_Timer, MCPWM_GEN_A, m_MCPWM_Config.duty_mode);
-        }
-        else if(direction == MOTOR_DIR_BWD)
-        {
-            mcpwm_set_signal_low(m_MCPWM_Unit, m_MCPWM_Timer, MCPWM_GEN_A);
-            mcpwm_set_duty(m_MCPWM_Unit, m_MCPWM_Timer, MCPWM_GEN_B, duty_cycle.mcpwm_B_duty);
-            mcpwm_set_duty_type(m_MCPWM_Unit, m_MCPWM_Timer, MCPWM_GEN_B, m_MCPWM_Config.duty_mode);
+            case MOTOR_DIR_BWD:
+                mcpwm_set_signal_low(m_MCPWM_Unit, m_MCPWM_Timer, MCPWM_GEN_A);
+                mcpwm_set_duty(m_MCPWM_Unit, m_MCPWM_Timer, MCPWM_GEN_B, duty_cycle.mcpwm_B_duty);
+                mcpwm_set_duty_type(m_MCPWM_Unit, m_MCPWM_Timer, MCPWM_GEN_B, m_MCPWM_Config.duty_mode);
+                break;
+            case MOTOR_DIR_FWD:
+                mcpwm_set_signal_low(m_MCPWM_Unit, m_MCPWM_Timer, MCPWM_GEN_B);
+                mcpwm_set_duty(m_MCPWM_Unit, m_MCPWM_Timer, MCPWM_GEN_A, duty_cycle.mcpwm_A_duty);
+                mcpwm_set_duty_type(m_MCPWM_Unit, m_MCPWM_Timer, MCPWM_GEN_A, m_MCPWM_Config.duty_mode);
+                break;
+            case MOTOR_DIR_MAX:
+            default:
+                return log::ROVER_ERR;
         }
         return log::ROVER_OK;
     }
@@ -91,14 +95,23 @@ namespace motor_ctrl
 
     log::ROVER_EC motor::SetDirection(motor_dir_t dir)
     {
-        if(dir >= MOTOR_DIR_BWD && dir < MOTOR_DIR_MAX)
+        switch(dir)
         {
-            ESP_LOGI(TAG, "Setting Direction : %s", (dir == MOTOR_DIR_FWD) ? "Forward" : "Backward");
-            direction = dir;
-            return log::ROVER_OK;
+            case MOTOR_DIR_BWD:
+                ESP_LOGI(TAG, "Setting Direction : %s", "Backward");
+                direction = dir;
+                break;
+            case MOTOR_DIR_FWD:
+                ESP_LOGI(TAG, "Setting Direction : %s", "Forward");
+                direction = dir;
+                break;
+            case MOTOR_DIR_MAX:
+            default:
+                ESP_LOGE(TAG, "Motor Direction Invalid : %d", dir);
+                return log::ROVER_ERR;
+
         }
-        ESP_LOGE(TAG, "Motor Direction Invalid : %d", dir);
-        return log::ROVER_ERR;
+        return log::ROVER_OK;
     }
 
     log::ROVER_EC motor::SetDuty(pwm_duty_t duty)

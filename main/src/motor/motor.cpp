@@ -89,7 +89,6 @@ namespace motor_ctrl
     {
         mcpwm_set_signal_low(m_MCPWM_Unit, m_MCPWM_Timer, MCPWM_GEN_A);
         mcpwm_set_signal_low(m_MCPWM_Unit, m_MCPWM_Timer, MCPWM_GEN_B);
-        ESP_LOGI(TAG, "Motor Stopped");
         return log::ROVER_OK;
     }
 

@@ -53,6 +53,26 @@ void controller_event_cb( ps3_t ps3, ps3_event_t event )
         RoverDirection = DIRECTION_RGT;
         return;
     }
+    if (event.button_up.up)
+    {
+        RoverDirection = DIRECTION_STOP;
+        return;
+    }
+    if (event.button_up.down)
+    {
+        RoverDirection = DIRECTION_STOP;
+        return;
+    }
+    if (event.button_up.left)
+    {
+        RoverDirection = DIRECTION_STOP;
+        return;
+    }
+    if (event.button_up.right)
+    {
+        RoverDirection = DIRECTION_STOP;
+        return;
+    }
     RoverDirection = DIRECTION_STOP;
 }
 
@@ -101,64 +121,85 @@ void InitAndRunMotor(void * params)
     Motor_Left.Init(MCPWM_UNIT_0, motor_ctrl::PWM_CHANNEL_0, MCPWM_TIMER_0);
     Motor_Right.Init(MCPWM_UNIT_0, motor_ctrl::PWM_CHANNEL_1, MCPWM_TIMER_1);
     DirectionType_t LocalDirection = DIRECTION_STOP;
+    int i = 10;
     while(1)
     {
-        if(LocalDirection != RoverDirection)
+        switch(RoverDirection)
         {
-            switch(RoverDirection)
-            {
-                case DIRECTION_STOP:
-                    Motor_Left.Stop();
-                    Motor_Right.Stop();
-                    break;
-                case DIRECTION_FWD:
-                    Motor_Left_DutyCycle.mcpwm_A_duty = 80;
-                    Motor_Right_DutyCycle.mcpwm_A_duty = 80;
-                    Motor_Left_DutyCycle.mcpwm_B_duty = 0;
-                    Motor_Right_DutyCycle.mcpwm_B_duty = 0;
+            case DIRECTION_STOP:
+                Motor_Left.Stop();
+                Motor_Right.Stop();
+                if(LocalDirection != RoverDirection)
+                {
+                    LocalDirection = RoverDirection;
+                }
+                break;
+            case DIRECTION_FWD:
+                // Gradually go to max speed
+                if(LocalDirection != RoverDirection)
+                {
+                    i = 10;
                     Motor_Left.SetDirection(motor_ctrl::MOTOR_DIR_FWD);
                     Motor_Right.SetDirection(motor_ctrl::MOTOR_DIR_FWD);
+                    Motor_Left_DutyCycle.mcpwm_B_duty = 0;
+                    Motor_Right_DutyCycle.mcpwm_B_duty = 0;
+                    LocalDirection = RoverDirection;
+                }
+                if(i < 100)
+                {
+                    Motor_Left_DutyCycle.mcpwm_A_duty = i;
+                    Motor_Right_DutyCycle.mcpwm_A_duty = i;
                     Motor_Left.SetDuty(Motor_Left_DutyCycle);
                     Motor_Right.SetDuty(Motor_Right_DutyCycle);
                     Motor_Left.Start();
                     Motor_Right.Start();
-                    break;
-                case DIRECTION_BWD:
-                    Motor_Left_DutyCycle.mcpwm_A_duty = 0;
-                    Motor_Right_DutyCycle.mcpwm_A_duty = 0;
-                    Motor_Left_DutyCycle.mcpwm_B_duty = 80;
-                    Motor_Right_DutyCycle.mcpwm_B_duty = 80;
+                    i++;
+                }
+                break;
+            case DIRECTION_BWD:
+                // Gradually go to max speed
+                if(LocalDirection != RoverDirection)
+                {
+                    i = 10;
                     Motor_Left.SetDirection(motor_ctrl::MOTOR_DIR_BWD);
                     Motor_Right.SetDirection(motor_ctrl::MOTOR_DIR_BWD);
-                    Motor_Left.SetDuty(Motor_Left_DutyCycle);
-                    Motor_Right.SetDuty(Motor_Right_DutyCycle);
-                    Motor_Left.Start();
-                    Motor_Right.Start();
-                    break;
-                case DIRECTION_RGT:
-                    Motor_Left_DutyCycle.mcpwm_A_duty = 50;
-                    Motor_Right_DutyCycle.mcpwm_A_duty = 0;
-                    Motor_Left_DutyCycle.mcpwm_B_duty = 0;
-                    Motor_Right_DutyCycle.mcpwm_B_duty = 0;
-                    Motor_Left.SetDirection(motor_ctrl::MOTOR_DIR_FWD);
-                    Motor_Left.SetDuty(Motor_Left_DutyCycle);
-                    Motor_Left.Start();
-                    break;
-                case DIRECTION_LFT:
                     Motor_Left_DutyCycle.mcpwm_A_duty = 0;
-                    Motor_Right_DutyCycle.mcpwm_A_duty = 50;
-                    Motor_Left_DutyCycle.mcpwm_B_duty = 0;
-                    Motor_Right_DutyCycle.mcpwm_B_duty = 0;
-                    Motor_Right.SetDirection(motor_ctrl::MOTOR_DIR_FWD);
+                    Motor_Right_DutyCycle.mcpwm_A_duty = 0;
+                    LocalDirection = RoverDirection;
+                }
+                if(i < 100)
+                {
+                    Motor_Left_DutyCycle.mcpwm_B_duty = i;
+                    Motor_Right_DutyCycle.mcpwm_B_duty = i;
+                    Motor_Left.SetDuty(Motor_Left_DutyCycle);
                     Motor_Right.SetDuty(Motor_Right_DutyCycle);
+                    Motor_Left.Start();
                     Motor_Right.Start();
-                    break;
-                default:
-                    ESP_LOGE(TAG, "Invalid Direction Set");
-            }
-            LocalDirection = RoverDirection;
+                    i++;
+                }
+                break;
+            case DIRECTION_RGT:
+                Motor_Left_DutyCycle.mcpwm_A_duty = 80;
+                Motor_Right_DutyCycle.mcpwm_A_duty = 0;
+                Motor_Left_DutyCycle.mcpwm_B_duty = 0;
+                Motor_Right_DutyCycle.mcpwm_B_duty = 0;
+                Motor_Left.SetDirection(motor_ctrl::MOTOR_DIR_FWD);
+                Motor_Left.SetDuty(Motor_Left_DutyCycle);
+                Motor_Left.Start();
+                break;
+            case DIRECTION_LFT:
+                Motor_Left_DutyCycle.mcpwm_A_duty = 0;
+                Motor_Right_DutyCycle.mcpwm_A_duty = 80;
+                Motor_Left_DutyCycle.mcpwm_B_duty = 0;
+                Motor_Right_DutyCycle.mcpwm_B_duty = 0;
+                Motor_Right.SetDirection(motor_ctrl::MOTOR_DIR_FWD);
+                Motor_Right.SetDuty(Motor_Right_DutyCycle);
+                Motor_Right.Start();
+                break;
+            default:
+                ESP_LOGE(TAG, "Invalid Direction Set");
         }
-        vTaskDelay(10 / portTICK_PERIOD_MS);
+       vTaskDelay(10 / portTICK_PERIOD_MS);
     }
 }
 void onConnect(uint8_t is_connected){

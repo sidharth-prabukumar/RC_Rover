@@ -1,2 +1,6 @@
 # RC_Rover
-An RC Rover using ESP32
+A Remote Controlled Rover using ESP32.
+
+## Goal:
+
+To repurpose a PlayStation controller in order to act as a Bluetooth based remote control for two-wheeled Rover.
